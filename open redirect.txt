@@ -1,0 +1,38 @@
+┌──(kali㉿kali)-[~/oppo]
+└─$ while read -r domain; do
+  waybackurls "$domain"
+done < 200something.txt > way1urls.txt
+
+
+
+┌──(kali㉿kali)-[~/UK]
+└─$ cat uk_way1urls.txt | gf redirect | qsreplace "https://evil.com" | httpx-toolkit -silent -fr -mr "evil.com" | grep '\[https://evil\.com\]$' | sed 's/ \[https:\/\/evil\.com\]$//'
+
+
+cat uk_way1urls.txt | gf redirect | qsreplace "https://evil.com" | httpx-toolkit -silent -fr -mr "evil.com" \
+  | grep -P '\[https://evil\.com\]\s*$' \
+  | sed -E 's/ \[https:\/\/evil\.com\][[:space:]]*$//'
+
+
+real working one:
+grep -Pv '%(?![0-9A-Fa-f]{2})' uk_way1urls.txt \
+  | qsreplace "https://evil.com" \
+  | httpx-toolkit -silent -fr -mr "evil.com" \
+  | sed -r "s/\x1B\[[0-9;]*[mK]//g" \
+  | grep '\[https://evil\.com\]$' \
+  | sed -E 's/ \[https:\/\/evil\.com\]$//'
+
+
+
+
+cat katanaurl.txt|while read url; do python3 secretfinder/SecretFinder.py -i $url -o cli;done
+
+
+
+
+to extract only twilight_app_sid from secretfinder
+grep -oEi 'twilight_app_sid[=:][ ]?[A-Z0-9]+' secretfinder_output.txt | cut -d ':' -f2 | cut -d '=' -f2 | tr -d ' ' | sort -u
+
+
+
+
