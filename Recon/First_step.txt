@@ -11,6 +11,8 @@ dnsgen subs.txt -o permutations.txt
 
  Resolve permutations (active brute force)
 cat permutations.txt | massdns -r resolvers.txt -t A -o S -w resolved.txt
+cat massdns_output.txt | awk '{print $1}' | sed 's/\.$//'
+
 
  Resolve original + permutations with amass active too (optional)
 amass enum -active -brute -d payoneer.com -o amass_active.txt
@@ -29,10 +31,67 @@ grep -Eo '([a-zA-Z0-9_\-]+\.)+payoneer\.com' amass_output.txt | sort -u > subdom
 # Assuming input file is 'raw_output.txt'
 awk '{print $1}' raw_output.txt | sort -u > subdomains_only.txt
 
+now check for http live
+cat resolved.txt|httpx > live.txt
+then we check for 200,404,403,301
+
+now we use eyewitness
+we need live http urls
+eyewitness --web -f urls.txt --no-prompt --threads 1
+(use threads 1 to make it work properly)
+{it wont work properly if there are invalid entried like 0,numbers,CIDR and .in-addr.r etc}
+use this
+grep -Eo '^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$|^([0-9]{1,3}\.){3}[0-9]{1,3}$' propersub.txt > cleaned.txt
+
+
+
+
+
 
 
 USE assetfinder for list of subdomain
 while read domain; do
   assetfinder --subs-only "$domain"
 done < domains.txt
+
+lets get ip from all that amass result
+cat amass_output.txt | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}|([0-9a-fA-F:]{3,})' | sort -u
+
+
+
+
+
+NOW FOR SINGLE DOMAIN
+
+finding ip of subdomain list
+
+cat subdomains.txt | xargs -n1 dig +short | grep -E '^[0-9]' > resolved_ips.txt
+
+
+now,
+nmap -sP 1.1.1.1
+nmap -sV 1.1.1.1
+nmap -sU 1.1.1.1
+
+now using ffuf for single website
+
+#find hidden paths
+ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+-u https://account.payoneer.com/FUZZ \
+-t 50 -mc 200,204,301,302,307,401,403
+
+#find hidden GET parameters
+ffuf -w params.txt -u "https://account.payoneer.com/dashboard?FUZZ=test" -mc 200
+
+
+#find hidden POST parameters
+ffuf -w postparams.txt -X POST -d "FUZZ=value" -H "Content-Type: application/x-www-form-urlencoded" -u https://account.payoneer.com/login -mc 200
+
+#virtual host fuzzing(vhost)
+ffuf -w subdomains.txt -u https://account.payoneer.com -H "Host: FUZZ.account.payoneer.com" -fs 4242
+
+
+now use hakrawler/gau/paramspider
+echo "https://account.payoneer.com" | hakrawler -d 2 -subs -scope subs -plain > urls.txt
+
 
